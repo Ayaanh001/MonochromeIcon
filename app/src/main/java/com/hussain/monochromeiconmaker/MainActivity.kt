@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,12 +57,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        handleIntent(intent)
+        if (savedInstanceState == null) {
+            handleIntent(intent)
+        }
         setContent { MonochromeIconMakerTheme { App(sharedUri.value) } }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         handleIntent(intent)
     }
 
@@ -82,12 +86,13 @@ fun App(initialUri: Uri? = null) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
+    var currentUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var sourceBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var monochromeBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var makeBlack by remember { mutableStateOf(true) }
-    var scale by remember { mutableStateOf(1f) }
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
+    var makeBlack by rememberSaveable { mutableStateOf(true) }
+    var scale by rememberSaveable { mutableStateOf(1f) }
+    var offsetX by rememberSaveable { mutableStateOf(0f) }
+    var offsetY by rememberSaveable { mutableStateOf(0f) }
 
     // Update monochrome bitmap when source changes
     LaunchedEffect(sourceBitmap) {
@@ -98,18 +103,25 @@ fun App(initialUri: Uri? = null) {
 
     // Handle shared image from intent
     LaunchedEffect(initialUri) {
-        initialUri?.let {
-            sourceBitmap = loadBitmapFromUri(context, it)
+        if (initialUri != null && initialUri != currentUri) {
+            currentUri = initialUri
             scale = 1f
             offsetX = 0f
             offsetY = 0f
         }
     }
 
+    // Load bitmap when currentUri changes
+    LaunchedEffect(currentUri) {
+        sourceBitmap = withContext(Dispatchers.IO) {
+            currentUri?.let { loadBitmapFromUri(context, it) }
+        }
+    }
+
     val pickImage =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             uri?.let {
-                sourceBitmap = loadBitmapFromUri(context, it)
+                currentUri = it
                 scale = 1f
                 offsetX = 0f
                 offsetY = 0f
@@ -182,7 +194,7 @@ fun App(initialUri: Uri? = null) {
                     OutlinedButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            sourceBitmap = null
+                            currentUri = null
                             scale = 1f
                             offsetX = 0f
                             offsetY = 0f
@@ -541,8 +553,8 @@ fun AdaptiveIconPreviewCard(
     offsetX: Float,
     offsetY: Float
 ) {
-    var isDarkMode by remember { mutableStateOf(false) }
-    var selectedPaletteIndex by remember { mutableStateOf(0) }
+    var isDarkMode by rememberSaveable { mutableStateOf(false) }
+    var selectedPaletteIndex by rememberSaveable { mutableStateOf(0) }
     val haptic = LocalHapticFeedback.current
 
     val currentPalette = palettes[selectedPaletteIndex]

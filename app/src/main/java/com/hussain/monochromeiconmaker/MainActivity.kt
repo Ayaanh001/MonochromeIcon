@@ -40,7 +40,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hussain.monochromeiconmaker.ui.theme.MonochromeIconMakerTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val sharedUri = mutableStateOf<Uri?>(null)
@@ -74,10 +76,18 @@ fun App(initialUri: Uri? = null) {
     val haptic = LocalHapticFeedback.current
 
     var sourceBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var monochromeBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     var makeBlack by remember { mutableStateOf(true) }
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
+
+    // Update monochrome bitmap when source changes
+    LaunchedEffect(sourceBitmap) {
+        monochromeBitmap = withContext(Dispatchers.Default) {
+            sourceBitmap?.toSmartMonochromeBlack()
+        }
+    }
 
     // Handle shared image from intent
     LaunchedEffect(initialUri) {
@@ -132,6 +142,7 @@ fun App(initialUri: Uri? = null) {
             // Preview card — no gestures here
             AdaptiveIconPreviewCard(
                 sourceBitmap = sourceBitmap,
+                monochromeBitmap = monochromeBitmap,
                 makeBlack = makeBlack,
                 scale = scale,
                 offsetX = offsetX,
@@ -288,18 +299,20 @@ fun App(initialUri: Uri? = null) {
                     Button(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            val uri = exportSingleFile(
-                                context = context,
-                                sourceBitmap = sourceBitmap!!,
-                                makeBlack = makeBlack,
-                                scale = scale,
-                                offsetX = offsetX,
-                                offsetY = offsetY,
-                                exportScale = 4,
-                                format = "png"
-                            )
-                            if (uri != null) {
-                                scope.launch {
+                            scope.launch {
+                                val uri = withContext(Dispatchers.IO) {
+                                    exportSingleFile(
+                                        context = context,
+                                        sourceBitmap = sourceBitmap!!,
+                                        makeBlack = makeBlack,
+                                        scale = scale,
+                                        offsetX = offsetX,
+                                        offsetY = offsetY,
+                                        exportScale = 4,
+                                        format = "png"
+                                    )
+                                }
+                                if (uri != null) {
                                     val result = snackbarHostState.showSnackbar(
                                         message = "Icon exported successfully!",
                                         actionLabel = "View",
@@ -450,6 +463,7 @@ class SquircleShape : Shape {
 @Composable
 fun AdaptiveIconPreviewCard(
     sourceBitmap: android.graphics.Bitmap?,
+    monochromeBitmap: android.graphics.Bitmap?,
     makeBlack: Boolean,
     scale: Float,
     offsetX: Float,
@@ -554,13 +568,14 @@ fun AdaptiveIconPreviewCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            val displayBitmap = if (makeBlack) (monochromeBitmap ?: sourceBitmap) else sourceBitmap
             shapes.forEach { (name, shape) ->
                 IconPreviewItem(
                     name = name,
                     shape = shape,
                     bgColor = bgColor,
                     fgColor = fgColor,
-                    sourceBitmap = sourceBitmap,
+                    displayBitmap = displayBitmap,
                     makeBlack = makeBlack,
                     scale = scale,
                     offsetX = offsetX,
@@ -579,20 +594,12 @@ fun IconPreviewItem(
     shape: Shape,
     bgColor: Color,
     fgColor: Color,
-    sourceBitmap: android.graphics.Bitmap?,
+    displayBitmap: android.graphics.Bitmap?,
     makeBlack: Boolean,
     scale: Float,
     offsetX: Float,
     offsetY: Float
 ) {
-    // Stable derived values — avoids recomposing text layer when bitmap changes
-    val displayBitmap by remember(sourceBitmap, makeBlack) {
-        derivedStateOf {
-            if (sourceBitmap != null && makeBlack) sourceBitmap.toSmartMonochromeBlack()
-            else sourceBitmap
-        }
-    }
-
     val colorFilter by remember(makeBlack, fgColor) {
         derivedStateOf {
             if (makeBlack) {

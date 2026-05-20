@@ -7,6 +7,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -235,10 +242,26 @@ fun App(initialUri: Uri? = null) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 makeBlack = it
                             },
+                            thumbContent = {
+                                AnimatedContent(
+                                    targetState = makeBlack,
+                                    transitionSpec = { fadeIn(tween(100)) togetherWith fadeOut(tween(100)) },
+                                    label = "switch_thumb_icon"
+                                ) { isChecked ->
+                                    Icon(
+                                        imageVector = if (isChecked) Icons.Rounded.Check else Icons.Rounded.Close,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
+                            },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                checkedIconColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                uncheckedIconColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                         )
                     }

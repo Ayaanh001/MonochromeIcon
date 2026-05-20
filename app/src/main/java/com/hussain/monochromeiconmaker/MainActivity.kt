@@ -43,15 +43,31 @@ import com.hussain.monochromeiconmaker.ui.theme.MonochromeIconMakerTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val sharedUri = mutableStateOf<Uri?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MonochromeIconMakerTheme { App() } }
+        handleIntent(intent)
+        setContent { MonochromeIconMakerTheme { App(sharedUri.value) } }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_SEND && intent.type?.startsWith("image/") == true) {
+            (intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))?.let {
+                sharedUri.value = it
+            }
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun App() {
+fun App(initialUri: Uri? = null) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -62,6 +78,16 @@ fun App() {
     var scale by remember { mutableStateOf(1f) }
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
+
+    // Handle shared image from intent
+    LaunchedEffect(initialUri) {
+        initialUri?.let {
+            sourceBitmap = loadBitmapFromUri(context, it)
+            scale = 1f
+            offsetX = 0f
+            offsetY = 0f
+        }
+    }
 
     val pickImage =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->

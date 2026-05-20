@@ -319,44 +319,93 @@ fun App(initialUri: Uri? = null) {
 
                     Spacer(Modifier.height(8.dp))
 
-                    Button(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            scope.launch {
-                                val uri = withContext(Dispatchers.IO) {
-                                    exportSingleFile(
-                                        context = context,
-                                        sourceBitmap = sourceBitmap!!,
-                                        makeBlack = makeBlack,
-                                        scale = scale,
-                                        offsetX = offsetX,
-                                        offsetY = offsetY,
-                                        exportScale = 4,
-                                        format = "png"
-                                    )
-                                }
-                                if (uri != null) {
-                                    val result = snackbarHostState.showSnackbar(
-                                        message = "Icon exported successfully!",
-                                        actionLabel = "View",
-                                        duration = SnackbarDuration.Short
-                                    )
-                                    if (result == SnackbarResult.ActionPerformed) {
-                                        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                                            setDataAndType(uri, "image/png")
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        }
-                                        context.startActivity(
-                                            Intent.createChooser(viewIntent, "Open with")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                scope.launch {
+                                    val uri = withContext(Dispatchers.IO) {
+                                        exportSingleFile(
+                                            context = context,
+                                            sourceBitmap = sourceBitmap!!,
+                                            makeBlack = makeBlack,
+                                            scale = scale,
+                                            offsetX = offsetX,
+                                            offsetY = offsetY,
+                                            exportScale = 4,
+                                            format = "png"
                                         )
                                     }
+                                    if (uri != null) {
+                                        val result = snackbarHostState.showSnackbar(
+                                            message = "Icon exported as PNG!",
+                                            actionLabel = "View",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                setDataAndType(uri, "image/png")
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(
+                                                Intent.createChooser(viewIntent, "Open with")
+                                            )
+                                        }
+                                    }
                                 }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("Export as PNG", fontWeight = FontWeight.SemiBold)
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text("Export PNG", fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Button(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                scope.launch {
+                                    val uri = withContext(Dispatchers.IO) {
+                                        exportSingleFile(
+                                            context = context,
+                                            sourceBitmap = sourceBitmap!!,
+                                            makeBlack = makeBlack,
+                                            scale = scale,
+                                            offsetX = offsetX,
+                                            offsetY = offsetY,
+                                            exportScale = 8, // Higher scale for SVG for better quality
+                                            format = "svg"
+                                        )
+                                    }
+                                    if (uri != null) {
+                                        val result = snackbarHostState.showSnackbar(
+                                            message = "Icon exported as SVG!",
+                                            actionLabel = "View",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                        if (result == SnackbarResult.ActionPerformed) {
+                                            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                setDataAndType(uri, "image/svg+xml")
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(
+                                                Intent.createChooser(viewIntent, "Open with")
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Text("Export SVG", fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }

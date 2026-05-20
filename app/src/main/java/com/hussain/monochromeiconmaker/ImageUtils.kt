@@ -121,13 +121,13 @@ fun exportSingleFile(
     exportScale: Int,
     format: String
 ): Uri? {
-    val bmp = renderIconBitmap(sourceBitmap, makeBlack, scale, offsetX, offsetY, exportScale)
-    val filename = "ic_monochrome_${System.currentTimeMillis()}.png"
+    val filename = "ic_monochrome_${System.currentTimeMillis()}.$format"
+    val mimeType = if (format == "svg") "image/svg+xml" else "image/png"
 
     val resolver = context.contentResolver
     val contentValues = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, filename)
-        put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+        put(MediaStore.Images.Media.MIME_TYPE, mimeType)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
@@ -135,7 +135,13 @@ fun exportSingleFile(
 
     val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues) ?: return null
     resolver.openOutputStream(uri)?.use { out ->
-        bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+        if (format == "svg") {
+            val svgString = bitmapToSvg(renderIconBitmap(sourceBitmap, makeBlack, scale, offsetX, offsetY, exportScale))
+            out.write(svgString.toByteArray())
+        } else {
+            val bmp = renderIconBitmap(sourceBitmap, makeBlack, scale, offsetX, offsetY, exportScale)
+            bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+        }
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -146,4 +152,34 @@ fun exportSingleFile(
     }
 
     return uri
+}
+
+fun bitmapToSvg(bitmap: Bitmap): String {
+    val w = bitmap.width
+    val h = bitmap.height
+    val sb = StringBuilder()
+    sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n")
+    sb.append("<svg width=\"$w\" height=\"$h\" viewBox=\"0 0 $w $h\" xmlns=\"http://www.w3.org/2000/svg\">\n")
+    sb.append("  <path d=\"")
+
+    for (y in 0 until h) {
+        var x = 0
+        while (x < w) {
+            val pixel = bitmap.getPixel(x, y)
+            if (Color.alpha(pixel) > 128) {
+                val startX = x
+                while (x < w && Color.alpha(bitmap.getPixel(x, y)) > 128) {
+                    x++
+                }
+                // Draw a rectangle for this horizontal run of pixels
+                sb.append("M$startX ${y}h${x - startX}v1h-${x - startX}z ")
+            } else {
+                x++
+            }
+        }
+    }
+
+    sb.append("\" fill=\"#000000\"/>\n")
+    sb.append("</svg>")
+    return sb.toString()
 }

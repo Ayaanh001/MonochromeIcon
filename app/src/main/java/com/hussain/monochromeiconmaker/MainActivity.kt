@@ -142,16 +142,23 @@ fun App(initialUri: Uri? = null) {
 
             // Action Row
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = if (sourceBitmap == null) Arrangement.Center else Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
             ) {
                 Button(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         pickImage.launch("image/*")
                     },
+                    modifier = if (sourceBitmap == null) Modifier.fillMaxWidth().height(56.dp) else Modifier,
                     shape = RoundedCornerShape(20.dp)
-                ) { Text("Import Image") }
+                ) {
+                    Text(
+                        "Import Image",
+                        style = if (sourceBitmap == null) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelLarge
+                    )
+                }
 
                 if (sourceBitmap != null) {
                     OutlinedButton(

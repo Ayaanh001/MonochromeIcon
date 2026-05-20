@@ -537,9 +537,9 @@ fun AdaptiveIconPreviewCard(
         val shapes = remember {
             listOf(
                 "Square"  to RectangleShape,
-                "Circle"  to CircleShape,
                 "Rounded" to RoundedCornerShape(16.dp),
-                "Squircle" to SquircleShape()
+                "Squircle" to SquircleShape(),
+                "Circle"  to CircleShape,
             )
         }
 

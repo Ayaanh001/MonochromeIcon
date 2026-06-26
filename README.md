@@ -51,14 +51,14 @@ With Monochrome Icon Maker, you just import your logo and we handle the rest.
 ### Prerequisites
 
 - Android Studio Koala or newer
-- Android SDK 34+
+- Android SDK 36+
 - A device running Android 8.0+
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/MonochromeIconMaker.git
+   git clone https://github.com/Ayaanh001/MonochromeIcon
    ```
 2. Open the project in Android Studio.
 3. Build and run the app on your device or emulator.
